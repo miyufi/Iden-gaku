@@ -1,15 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Iden-gaku</title>
 </head>
+
 <body>
-    <form>
-        <input type="file" id="image" name="filename" accept="image/*">
-        <input type="submit">
-      </form>
+    <p id="msg"></p>
+    <input type="file" id="image" name="files[]" accept = "image/*"/>
+    <button id="upload">Upload</button>
 </body>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script type="text/javascript">
+    $(document).ready(function (e) {
+        $('#upload').on('click', function () {
+            var form_data = new FormData();
+            var ins = document.getElementById('image').files.length;
+            if (ins == 0) {
+                $('#msg').html('<span style="color:red">Select at least one file</span>');
+                return;
+            }
+            form_data.append("files[]", document.getElementById('image').files[0]);
+            $.ajax({
+                url: 'test',
+                dataType: 'json',
+                cache: false,
+                contentType: false,
+                processData: false,
+                data: form_data,
+                type: 'post',
+                success: function (response) {
+                    console.log(response)
+                    $('#msg').html(response.message);
+                },
+                error: function (response) {
+                    console.log(response)
+                    $('#msg').html('<span style="color:red">Please upload an image file</span>');
+                }
+            });
+        });
+    });
+</script>
+
 </html>
