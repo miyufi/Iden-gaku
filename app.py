@@ -115,6 +115,13 @@ def run():
                        random_mutation_max_val=1.0,
                        on_generation=callback)
     ga_instance.run()
+    return "Done"
+
+@app.route('/stop', methods = ["POST"])
+def stop():
+    global stop
+    stop = True
+    return "Okay"
 
 
 if __name__ == "__main__":
