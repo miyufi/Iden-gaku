@@ -10,8 +10,11 @@
 
 <body>
     <p id="msg"></p>
-    <input type="file" id="image" name="files[]" accept = "image/*"/>
+    <input type="file" id="image" name="files[]" accept="image/*" />
     <button id="upload">Upload</button>
+    <div class="selections">
+
+    </div>
 </body>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script type="text/javascript">
@@ -25,7 +28,7 @@
             }
             form_data.append("files[]", document.getElementById('image').files[0]);
             $.ajax({
-                url: 'test',
+                url: 'upload',
                 dataType: 'json',
                 cache: false,
                 contentType: false,
@@ -34,7 +37,13 @@
                 type: 'post',
                 success: function (response) {
                     console.log(response)
-                    $('#msg').html(response.message);
+                    // $('#msg').html(response.message);
+                    $('.selections').html(`
+                    <button id="run">Run</button>
+                    <button id="restart">Restart</button>
+                    <button id="stop">Stop</button>
+                    <button id="export">Export to GIF</button>`)
+
                 },
                 error: function (response) {
                     console.log(response)
