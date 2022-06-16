@@ -13,10 +13,9 @@
     <input type="file" id="image" name="files[]" accept="image/*" />
     <button id="upload">Upload</button>
     <div class="selections">
-        <button id="run" hidden>Run</button>
-        <button id="restart" hidden>Restart</button>
-        <button id="stop" hidden>Stop</button>
-        <button id="export" hidden>Export to GIF</button>
+        <button id="run" disabled = True>Run</button>
+        <button id="stop" disabled = True>Stop</button>
+        <button id="export" disabled=True>Export to GIF</button>
     </div>
 </body>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
@@ -40,10 +39,7 @@
                 type: 'post',
                 success: function (response) {
                     console.log(response)
-                    $('#run').removeAttr('hidden')
-                    $('#restart').removeAttr('hidden')
-                    $('#stop').removeAttr('hidden')
-                    $('#export').removeAttr('hidden')
+                    $('#run').prop('disabled', false);
                 },
                 error: function (response) {
                     console.log(response)
@@ -53,9 +49,12 @@
         });
 
         $('#run').on('click', function () {
+            $('#run').prop('disabled', true);
+            $('#stop').prop('disabled', false)
+            $('#upload').prop('disabled', true);
             $.ajax({
                 url: 'run',
-                data: {run: "run"},
+                data: { run: "run" },
                 type: 'post',
                 success: function (response) {
                     console.log(response)
@@ -63,9 +62,27 @@
                 error: function (response) {
                     console.log(response)
                 }
+            });
+
+            $('#stop').on('click', function () {
+                $('#run').prop('disabled', false);
+                $('#stop').prop('disabled', true)
+                $('#upload').prop('disabled', false);
+                $('#export').prop('disabled', false);
+                $.ajax({
+                    url: 'stop',
+                    data: { stop: "stop" },
+                    type: 'post',
+                    success: function (response) {
+                        console.log(response)
+                    },
+                    error: function (response) {
+                        console.log(response)
+                    }
+                });
+            });
         });
     });
-});
 </script>
 
 </html>
