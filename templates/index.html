@@ -13,7 +13,10 @@
     <input type="file" id="image" name="files[]" accept="image/*" />
     <button id="upload">Upload</button>
     <div class="selections">
-
+        <button id="run" hidden>Run</button>
+        <button id="restart" hidden>Restart</button>
+        <button id="stop" hidden>Stop</button>
+        <button id="export" hidden>Export to GIF</button>
     </div>
 </body>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
@@ -37,13 +40,10 @@
                 type: 'post',
                 success: function (response) {
                     console.log(response)
-                    // $('#msg').html(response.message);
-                    $('.selections').html(`
-                    <button id="run">Run</button>
-                    <button id="restart">Restart</button>
-                    <button id="stop">Stop</button>
-                    <button id="export">Export to GIF</button>`)
-
+                    $('#run').removeAttr('hidden')
+                    $('#restart').removeAttr('hidden')
+                    $('#stop').removeAttr('hidden')
+                    $('#export').removeAttr('hidden')
                 },
                 error: function (response) {
                     console.log(response)
@@ -51,7 +51,21 @@
                 }
             });
         });
+
+        $('#run').on('click', function () {
+            $.ajax({
+                url: 'run',
+                data: {run: "run"},
+                type: 'post',
+                success: function (response) {
+                    console.log(response)
+                },
+                error: function (response) {
+                    console.log(response)
+                }
+        });
     });
+});
 </script>
 
 </html>
