@@ -18,6 +18,10 @@ target_im = None
 target_chromosome = None
 previous = None
 stop = False
+generations = 10000
+mating_parents = 20
+solutions_per_population = 40
+mutation_percentage = 0.01
 
 
 def allowed_file(filename):
@@ -101,14 +105,15 @@ def test():
 
 @app.route('/run', methods = ["POST"])
 def run():
-    ga_instance = pygad.GA(num_generations=25000,
-                       num_parents_mating=20,
+    global generations, mating_parents, solutions_per_population, mutation_percentage
+    ga_instance = pygad.GA(num_generations=generations,
+                       num_parents_mating=mating_parents,
                        fitness_func=fitness_fun,
-                       sol_per_pop=40,
+                       sol_per_pop=solutions_per_population,
                        num_genes=target_im.size,
                        init_range_low=0.0,
                        init_range_high=1.0,
-                       mutation_percent_genes=0.01,
+                       mutation_percent_genes=mutation_percentage,
                        mutation_type="random",
                        mutation_by_replacement=True,
                        random_mutation_min_val=0.0,
