@@ -9,6 +9,7 @@
 </head>
 
 <body>
+    <a id = "exportgif" href="{{ url_for('static', filename='gif/Iden.gif') }}" download="GeneticAlgorithm.gif" hidden></a>
     <p id="msg"></p>
     <input type="file" id="image" name="files[]" accept="image/*" />
     <button id="upload">Upload</button>
@@ -40,6 +41,7 @@
                 success: function (response) {
                     console.log(response)
                     $('#run').prop('disabled', false);
+                    $('#export').prop('disabled', true);
                 },
                 error: function (response) {
                     console.log(response)
@@ -75,6 +77,21 @@
                     type: 'post',
                     success: function (response) {
                         console.log(response)
+                    },
+                    error: function (response) {
+                        console.log(response)
+                    }
+                });
+            });
+
+            $('#export').on('click', function () {
+                $.ajax({
+                    url: 'export',
+                    data: { export: "export" },
+                    type: 'post',
+                    success: function (response) {
+                        console.log(response)
+                        document.querySelector("#exportgif").click();
                     },
                     error: function (response) {
                         console.log(response)

@@ -7,6 +7,7 @@ import pygad
 import gari
 import os
 import glob
+import imageio
 
 app = Flask(__name__)
 app.secret_key = "secret key"
@@ -21,7 +22,7 @@ stop = False
 generations = 10000
 mating_parents = 20
 solutions_per_population = 40
-mutation_percentage = 0.01
+mutation_percentage = 0.1
 
 
 def allowed_file(filename):
@@ -39,6 +40,10 @@ def callback(ga_instance):
     print("Generation = {gen}".format(gen=ga_instance.generations_completed))
     print("Fitness    = {fitness}".format(
         fitness=ga_instance.best_solution()[1]))
+
+    if ga_instance.generations_completed == 1:
+        plt.imsave('Generations/generation_{:06d}.png'.format(ga_instance.generations_completed),
+                   gari.chromosome2img(ga_instance.best_solution()[0], target_im.shape))
 
     if ga_instance.generations_completed % 100 == 0:
         plt.imsave('Generations/generation_{:06d}.png'.format(ga_instance.generations_completed),
@@ -69,6 +74,9 @@ def index():
 @app.route("/upload", methods=['POST'])
 def test():
     global target_im, target_chromosome, previous
+    files = glob.glob('./Generations/*')
+    for f in files:
+        os.remove(f)
     if 'files[]' not in request.files:
         resp = jsonify({'message': 'No file part in the request'})
         resp.status_code = 400
@@ -103,30 +111,46 @@ def test():
         resp.status_code = 400
         return resp
 
-@app.route('/run', methods = ["POST"])
+
+@app.route('/run', methods=["POST"])
 def run():
     global generations, mating_parents, solutions_per_population, mutation_percentage
     ga_instance = pygad.GA(num_generations=generations,
-                       num_parents_mating=mating_parents,
-                       fitness_func=fitness_fun,
-                       sol_per_pop=solutions_per_population,
-                       num_genes=target_im.size,
-                       init_range_low=0.0,
-                       init_range_high=1.0,
-                       mutation_percent_genes=mutation_percentage,
-                       mutation_type="random",
-                       mutation_by_replacement=True,
-                       random_mutation_min_val=0.0,
-                       random_mutation_max_val=1.0,
-                       on_generation=callback)
+                           num_parents_mating=mating_parents,
+                           fitness_func=fitness_fun,
+                           sol_per_pop=solutions_per_population,
+                           num_genes=target_im.size,
+                           init_range_low=0.0,
+                           init_range_high=1.0,
+                           mutation_percent_genes=mutation_percentage,
+                           mutation_type="random",
+                           mutation_by_replacement=True,
+                           random_mutation_min_val=0.0,
+                           random_mutation_max_val=1.0,
+                           on_generation=callback)
     ga_instance.run()
     return "Done"
 
-@app.route('/stop', methods = ["POST"])
+
+@app.route('/stop', methods=["POST"])
 def stop():
     global stop
     stop = True
     return "Okay"
+
+
+@app.route("/export", methods=["POST"])
+def export():
+    anim_file = 'static/gif/Iden.gif'
+    with imageio.get_writer(anim_file, mode='I') as writer:
+        filenames = glob.glob('Generations/generation*.png')
+        filenames = sorted(filenames)
+        for filename in filenames:
+            image = imageio.imread(filename)
+            writer.append_data(image)
+        image = imageio.imread(filename)
+        writer.append_data(image)
+        return "Exported"
 
 
 if __name__ == "__main__":
