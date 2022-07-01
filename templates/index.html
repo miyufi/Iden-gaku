@@ -1,105 +1,274 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE HTML>
+<html>
 
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iden-gaku</title>
+	<title>Genetic Algorithm</title>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+	<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
+	<link href='https://fonts.googleapis.com/css?family=Poppins' rel='stylesheet'>
+	<noscript>
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/noscript.css') }}" />
+	</noscript>
 </head>
 
-<body>
-    <a id = "exportgif" href="{{ url_for('static', filename='gif/Iden.gif') }}" download="GeneticAlgorithm.gif" hidden></a>
-    <p id="msg"></p>
-    <input type="file" id="image" name="files[]" accept="image/*" />
-    <button id="upload">Upload</button>
-    <div class="selections">
-        <button id="run" disabled = True>Run</button>
-        <button id="stop" disabled = True>Stop</button>
-        <button id="export" disabled=True>Export to GIF</button>
-    </div>
+<body class="is-preload">
+	<div id="myModal" class="modal">
+
+		<!-- Modal content -->
+		<div class="modal-content">
+			<span class="close">&times;</span>
+			<div class="modal-header">
+
+				<h2 class="icon solid fa-cog"> Settings</h2>
+			</div>
+			<div class="modal-body">
+				<h3>Number of Generations (1000-25000)</h3>
+				<div class="row gtr-uniform">
+					<div class="col-12">
+						<input type="text" name="generations" id="generations" value="25000" placeholder="25000" />
+					</div>
+				</div>
+				<br>
+				<h3>Number of Parents (10-20)</h3>
+				<div class="row gtr-uniform">
+					<div class="col-12">
+						<input type="text" name="parents" id="parents" value="20" placeholder="20" />
+					</div>
+				</div>
+				<br>
+				<h3>Solutions per Population (20-40)</h3>
+				<div class="row gtr-uniform">
+					<div class="col-12">
+						<input type="text" name="solutions" id="solutions" value="40" placeholder="40" />
+					</div>
+				</div>
+				<br>
+				<h3>Mutation Percentage (0.1-1)</h3>
+				<div class="row gtr-uniform">
+					<div class="col-12">
+						<input type="text" name="mutation" id="mutation" value="0.1" placeholder="0.1" />
+					</div>
+				</div>
+			</div>
+			<br>
+			<div class="modal-footer">
+				<button id="submit" class="button primary small icon solid fa-check">Submit</button>
+				<p id="errors" style="margin: 0"></p>
+			</div>
+		</div>
+
+	</div>
+	<a id="exportgif" href="{{ url_for('static', filename='gif/Iden.gif') }}" download="GeneticAlgorithm.gif"
+		hidden></a>
+	<section id="sidebar">
+		<div class="inner">
+			<nav>
+				<h2>Genetic Algorithm</h2>
+				<p id="msg" style="margin: 0"></p>
+				<ul class="actions stacked">
+
+					<input type="file" class="button" style="display:none" id="image" name="files[]" accept="image/*" />
+					<li><input type="button" class="button small" id="chooseFile" value="Choose File"
+							onclick="document.getElementById('image').click();" /></li>
+					<li><button id="upload" class="button primary small icon solid fa-upload">Upload</button></li>
+				</ul>
+				<ul class="actions stacked">
+					<li><button id="export" class="button primary small icon solid fa-download" disabled=True>Export to
+							GIF</button></li>
+					<li><button id="settings" class="button primary small icon solid fa-cog"
+							disabled="True">Settings</button></li>
+					<li><button id="stop" class="button primary small icon solid fa-stop" disabled=True>Stop</button>
+					</li>
+					<li><button id="run" class="button primary small icon solid fa-play" disabled=True>Run</button></li>
+
+				</ul>
+			</nav>
+		</div>
+	</section>
+
+
+	<div id="wrapper">
+		<section id="intro" class="wrapper style1 fullscreen fade-up">
+			<div class="inner">
+				<div class="box alt">
+					<div class="row gtr-uniform">
+						<div class="col-6"><span class="image fit"><img src="" id="photo" alt="" /></span></div>
+						<div class="col-6"><span class="image fit"><img src="" id="generated" alt="" /></span></div>
+					</div>
+					<p style="margin:0 " id="generation"></p>
+					<p id="fitness"></p>
+				</div>
+			</div>
+		</section>
+	</div>
+
+	<script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+	<script src='https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.0/socket.io.js'></script>
+	<script src="{{ url_for('static', filename='js/jquery.scrollex.min.js') }}"></script>
+	<script src="{{ url_for('static', filename='js/jquery.scrolly.min.js') }}"></script>
+	<script src="{{ url_for('static', filename='js/browser.min.js') }}"></script>
+	<script src="{{ url_for('static', filename='js/breakpoints.min.js') }}"></script>
+	<script src="{{ url_for('static', filename='js/util.js') }}"></script>
+	<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+	<script>
+		async function getRequest(url = '') {
+			const response = await fetch(url, {
+				method: 'GET',
+				cache: 'no-cache'
+			})
+			return response.json()
+		}
+
+		document.addEventListener('DOMContentLoaded', function () {
+
+			let url = document.location
+			let route = "/flaskwebgui-keep-server-alive"
+			let interval_request = 3 * 1000 //sec
+
+			function keep_alive_server() {
+				getRequest(url + route)
+					.then(data => console.log(data))
+			}
+
+			setInterval(keep_alive_server, interval_request)()
+
+		})
+	</script>
+	<script type="text/javascript">
+		$(document).ready(function (e) {
+			var modal = document.getElementById("myModal");
+			var btn = document.getElementById("settings");
+			var span = document.getElementsByClassName("close")[0];
+			btn.onclick = function () {
+				modal.style.display = "block";
+			}
+			span.onclick = function () {
+				modal.style.display = "none";
+			}
+			window.onclick = function (event) {
+				if (event.target == modal) {
+					modal.style.display = "none";
+				}
+			}
+			var socket = io.connect(window.location.protocol + '//' + document.domain + ':' + location.port);
+			socket.on('connect', function () {
+				console.log("Connected...!", socket.connected)
+			});
+
+			socket.on('uploaded-image', function (image) {
+				document.getElementById("photo").src = "data:image/png;base64," + image.image_data;
+			});
+
+			socket.on('generated-image', function (image) {
+				document.getElementById("generated").src = "data:image/png;base64," + image.generated_image;
+				$('#generation').text(image.generation);
+				$('#fitness').text(image.fitness);
+			});
+
+			$('#upload').on('click', function () {
+				var form_data = new FormData();
+				var ins = document.getElementById('image').files.length;
+				if (ins == 0) {
+					$('#msg').html('<span style="color:red">Select at least one file</span>');
+					return;
+				}
+				form_data.append("files[]", document.getElementById('image').files[0]);
+				$.ajax({
+					url: 'upload',
+					dataType: 'json',
+					cache: false,
+					contentType: false,
+					processData: false,
+					data: form_data,
+					type: 'post',
+					success: function (response) {
+						console.log(response)
+						$('#run').prop('disabled', false);
+						$('#settings').prop('disabled', false);
+						$('#export').prop('disabled', true);
+						$('#msg').html('');
+					},
+					error: function (response) {
+						console.log(response)
+						$('#msg').html('<span style="color:red">Please upload an image file</span>');
+					}
+				});
+			});
+
+			$('#run').on('click', function () {
+				$('#run').prop('disabled', true);
+				$('#stop').prop('disabled', false)
+				$('#upload').prop('disabled', true);
+				$('#settings').prop('disabled', true);
+				$.ajax({
+					url: 'run',
+					data: { run: "run" },
+					type: 'post',
+					success: function (response) {
+						console.log(response)
+					},
+					error: function (response) {
+						console.log(response)
+					}
+				});
+			});
+
+			$('#submit').on('click', function () {
+				var generations = $("#generations").val();
+				var parents = $("#parents").val();
+				var solutions = $("#solutions").val();
+				var mutation = $("#mutation").val();
+				$.ajax({
+					url: 'submit',
+					data: { generations: generations, parents: parents, solutions: solutions, mutation: mutation },
+					type: 'post',
+					success: function (response) {
+						$('#errors').html('');
+						$('.close').click()
+					},
+					error: function (response) {
+						$('#errors').html('<span style="color:red">Error in settings.</span>');
+					}
+				});
+			});
+
+			$('#stop').on('click', function () {
+				$('#run').prop('disabled', false);
+				$('#stop').prop('disabled', true)
+				$('#upload').prop('disabled', false);
+				$('#export').prop('disabled', false);
+				$('#settings').prop('disabled', false);
+				$.ajax({
+					url: 'stop',
+					data: { stop: "stop" },
+					type: 'post',
+					success: function (response) {
+						console.log(response)
+					},
+					error: function (response) {
+						console.log(response)
+					}
+				});
+			});
+
+			$('#export').on('click', function () {
+				$.ajax({
+					url: 'export',
+					data: { export: "export" },
+					type: 'post',
+					success: function (response) {
+						console.log(response)
+						document.querySelector("#exportgif").click();
+					},
+					error: function (response) {
+						console.log(response)
+					}
+				});
+			});
+		});
+	</script>
+
 </body>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-<script type="text/javascript">
-    $(document).ready(function (e) {
-        $('#upload').on('click', function () {
-            var form_data = new FormData();
-            var ins = document.getElementById('image').files.length;
-            if (ins == 0) {
-                $('#msg').html('<span style="color:red">Select at least one file</span>');
-                return;
-            }
-            form_data.append("files[]", document.getElementById('image').files[0]);
-            $.ajax({
-                url: 'upload',
-                dataType: 'json',
-                cache: false,
-                contentType: false,
-                processData: false,
-                data: form_data,
-                type: 'post',
-                success: function (response) {
-                    console.log(response)
-                    $('#run').prop('disabled', false);
-                    $('#export').prop('disabled', true);
-                },
-                error: function (response) {
-                    console.log(response)
-                    $('#msg').html('<span style="color:red">Please upload an image file</span>');
-                }
-            });
-        });
-
-        $('#run').on('click', function () {
-            $('#run').prop('disabled', true);
-            $('#stop').prop('disabled', false)
-            $('#upload').prop('disabled', true);
-            $.ajax({
-                url: 'run',
-                data: { run: "run" },
-                type: 'post',
-                success: function (response) {
-                    console.log(response)
-                },
-                error: function (response) {
-                    console.log(response)
-                }
-            });
-
-            $('#stop').on('click', function () {
-                $('#run').prop('disabled', false);
-                $('#stop').prop('disabled', true)
-                $('#upload').prop('disabled', false);
-                $('#export').prop('disabled', false);
-                $.ajax({
-                    url: 'stop',
-                    data: { stop: "stop" },
-                    type: 'post',
-                    success: function (response) {
-                        console.log(response)
-                    },
-                    error: function (response) {
-                        console.log(response)
-                    }
-                });
-            });
-
-            $('#export').on('click', function () {
-                $.ajax({
-                    url: 'export',
-                    data: { export: "export" },
-                    type: 'post',
-                    success: function (response) {
-                        console.log(response)
-                        document.querySelector("#exportgif").click();
-                    },
-                    error: function (response) {
-                        console.log(response)
-                    }
-                });
-            });
-        });
-    });
-</script>
 
 </html>

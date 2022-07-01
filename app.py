@@ -1,4 +1,7 @@
 from flask import Flask, render_template, request, jsonify
+from flask_socketio import SocketIO, emit
+from engineio.payload import Payload
+from engineio.async_drivers import threading
 from werkzeug.utils import secure_filename
 import numpy as np
 import imageio
@@ -8,18 +11,25 @@ import gari
 import os
 import glob
 import imageio
+import base64
+from flaskwebgui import FlaskUI
+
+Payload.max_decode_packets = 2048
 
 app = Flask(__name__)
 app.secret_key = "secret key"
 app.config["UPLOAD_FOLDER"] = "static/uploads/"
+socketio = SocketIO(app, manage_session=False,
+                    cors_allowed_origins='*', async_mode="threading")
 
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 
+uploaded_name = None
 target_im = None
 target_chromosome = None
 previous = None
 stop = False
-generations = 10000
+generations = 25000
 mating_parents = 20
 solutions_per_population = 40
 mutation_percentage = 0.1
@@ -37,17 +47,31 @@ def fitness_fun(solution, solution_idx):
 
 def callback(ga_instance):
     global stop
-    print("Generation = {gen}".format(gen=ga_instance.generations_completed))
-    print("Fitness    = {fitness}".format(
-        fitness=ga_instance.best_solution()[1]))
+    generation = "Generation = {gen}".format(
+        gen=ga_instance.generations_completed)
+    fitness = "Fitness    = {fitness}".format(
+        fitness=ga_instance.best_solution()[1])
+    print(generation)
+    print(fitness)
 
     if ga_instance.generations_completed == 1:
         plt.imsave('Generations/generation_{:06d}.png'.format(ga_instance.generations_completed),
                    gari.chromosome2img(ga_instance.best_solution()[0], target_im.shape))
 
+        with open('Generations/generation_{:06d}.png'.format(ga_instance.generations_completed), 'rb') as f:
+            generated_image = base64.b64encode(f.read())
+        generated_image = generated_image.decode('utf-8')
+        socketio.emit('generated-image', {'generated_image': generated_image,
+                      'generation': generation, 'fitness': fitness})
+
     if ga_instance.generations_completed % 100 == 0:
         plt.imsave('Generations/generation_{:06d}.png'.format(ga_instance.generations_completed),
                    gari.chromosome2img(ga_instance.best_solution()[0], target_im.shape))
+        with open('Generations/generation_{:06d}.png'.format(ga_instance.generations_completed), 'rb') as f:
+            generated_image = base64.b64encode(f.read())
+        generated_image = generated_image.decode('utf-8')
+        socketio.emit('generated-image', {'generated_image': generated_image,
+                      'generation': generation, 'fitness': fitness})
     if stop == True:
         stop = False
         return "stop"
@@ -73,7 +97,7 @@ def index():
 
 @app.route("/upload", methods=['POST'])
 def test():
-    global target_im, target_chromosome, previous
+    global target_im, target_chromosome, previous, uploaded_name
     files = glob.glob('./Generations/*')
     for f in files:
         os.remove(f)
@@ -93,6 +117,7 @@ def test():
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
         target_im = imageio.imread(os.path.join(
             app.config['UPLOAD_FOLDER'], filename))
+        target_im = np.asarray(target_im/255, dtype=np.float)
         target_chromosome = gari.img2chromosome(target_im)
         previous = filename
         success = True
@@ -100,11 +125,13 @@ def test():
         errors[file.filename] = 'File type is not allowed'
 
     if success:
-        target_im = imageio.imread(os.path.join(
-            app.config['UPLOAD_FOLDER'], filename))
-        target_chromosome = gari.img2chromosome(target_im)
         resp = jsonify({'message': 'File successfully uploaded'})
         resp.status_code = 201
+        uploaded_name = file.filename
+        with open('static/uploads/' + uploaded_name, 'rb') as f:
+            image_data = base64.b64encode(f.read())
+        image_data = image_data.decode('utf-8')
+        socketio.emit('uploaded-image', {'image_data': image_data})
         return resp
     else:
         resp = jsonify(errors)
@@ -127,8 +154,10 @@ def run():
                            mutation_by_replacement=True,
                            random_mutation_min_val=0.0,
                            random_mutation_max_val=1.0,
-                           on_generation=callback)
+                           callback_generation=callback)
     ga_instance.run()
+    ga_instance.plot_fitness(
+        title="Genetic Algorithm - Generation vs. Fitness")
     return "Done"
 
 
@@ -137,6 +166,26 @@ def stop():
     global stop
     stop = True
     return "Okay"
+
+
+@app.route('/submit', methods=["POST"])
+def submit():
+    global generations, mating_parents, solutions_per_population, mutation_percentage
+    try:
+        generations = int(request.form.get('generations'))
+        mating_parents = int(request.form.get('parents'))
+        solutions_per_population = int(request.form.get('solutions'))
+        mutation_percentage = float(request.form.get('mutation'))
+        if generations >= 1000 and generations <= 25000 and mating_parents >= 10 and mating_parents <= 20 and solutions_per_population >= 20 and solutions_per_population <= 40 and mutation_percentage >= 0.1 and mutation_percentage <= 1:
+            return "Applied"
+        else:
+            resp = jsonify({'message': 'Error'})
+            resp.status_code = 400
+            return resp
+    except:
+        resp = jsonify({'message': 'Error'})
+        resp.status_code = 400
+        return resp
 
 
 @app.route("/export", methods=["POST"])
@@ -154,4 +203,6 @@ def export():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # socketio.run(app, debug=True)
+    FlaskUI(app, socketio=socketio, start_server="flask-socketio",
+            maximized=True, port=5000).run()
